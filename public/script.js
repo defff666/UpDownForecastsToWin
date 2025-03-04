@@ -5,17 +5,17 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(20).fill(''), // 20 точек, центр — 10
+    labels: Array(20).fill(''), // 20 точек
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(20).fill(null), // Начальные данные как null
+      data: Array(20).fill(null), // Начальные данные
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: (context) => (context.dataIndex === 10 ? 6 : 0), // Жирная круглая точка
+      pointRadius: (context) => (context.dataIndex === 10 ? 6 : 0), // Точка в центре
       pointBackgroundColor: '#fff',
       pointStyle: 'circle', // Круглая форма
       fill: false,
-      tension: 0.5, // Плавность
+      tension: 0.3, // Лёгкая плавность
       segment: {
         borderColor: (ctx) => (ctx.p1DataIndex > 10 ? 'transparent' : '#00ff00'), // Только слева
       },
@@ -24,8 +24,8 @@ const chart = new Chart(ctx, {
   options: {
     maintainAspectRatio: false,
     animation: {
-      duration: 250, // Быстрая и плавная анимация
-      easing: 'easeInOutQuad',
+      duration: 250, // Плавная анимация точки
+      easing: 'linear', // Линейное движение
     },
     scales: {
       x: { display: false },
@@ -37,7 +37,7 @@ const chart = new Chart(ctx, {
           font: { size: 14, family: 'Arial' }, 
           maxTicksLimit: 5, 
           autoSkip: false,
-          precision: 2, // 2 знака после запятой
+          precision: 2,
         },
         suggestedMin: 84288 - 0.5,
         suggestedMax: 84288 + 0.5,
@@ -77,15 +77,14 @@ ws.onmessage = (event) => {
   const rawPrice = parseFloat(data.p);
   priceBuffer.push(rawPrice);
   priceHistory.push(rawPrice);
-  if (priceHistory.length > 20) priceHistory.shift(); // 20 тиков для масштаба
+  if (priceHistory.length > 20) priceHistory.shift();
 };
 
 // Обновление графика
 setInterval(() => {
   if (priceBuffer.length > 0) {
     const avgPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
-    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.9; // Усиленное сглаживание
-    lastPrice = smoothedPrice;
+    lastPrice = avgPrice; // Без лишнего сглаживания массива
 
     // Динамический масштаб
     const minPrice = Math.min(...priceHistory);
@@ -93,17 +92,17 @@ setInterval(() => {
     chart.options.scales.y.suggestedMin = minPrice - 0.5;
     chart.options.scales.y.suggestedMax = maxPrice + 0.5;
 
-    // Обновляем данные
+    // Сдвигаем как лист бумаги
     const currentData = chart.data.datasets[0].data.slice();
-    currentData.shift();
-    currentData[10] = smoothedPrice; // Точка в центре
+    currentData.shift(); // Убираем слева
+    currentData[10] = lastPrice; // Точка в центре
     chart.data.datasets[0].data = currentData;
     chart.update({ duration: 250 });
 
-    priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
+    priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
     priceBuffer = [];
   }
-}, 250); // 250 мс для плавности
+}, 250); // 250 мс
 
 // Таймер
 let timer = 60;
