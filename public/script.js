@@ -10,21 +10,24 @@ const chart = new Chart(ctx, {
       label: 'BTC/USDT',
       data: Array(30).fill(84288), // Начальная цена
       borderColor: '#00ff00',
-      borderWidth: 1,
+      borderWidth: 2,
       pointRadius: 0,
       fill: false,
-      tension: 0.1,
+      tension: 0.4, // Плавность линий
     }],
   },
   options: {
     maintainAspectRatio: false,
-    animation: false,
+    animation: {
+      duration: 200, // Плавная анимация
+      easing: 'linear',
+    },
     scales: {
       x: { display: false },
       y: {
         display: false,
-        suggestedMin: 84200, // Устанавливаем диапазон
-        suggestedMax: 84350,
+        suggestedMin: 84280, // Узкий диапазон для видимости изменений
+        suggestedMax: 84296,
       },
     },
     plugins: {
@@ -35,16 +38,22 @@ const chart = new Chart(ctx, {
 });
 
 const priceElement = document.getElementById('currentPrice');
+let lastPrice = 84288; // Начальная цена для сглаживания
 
-// Подключаем Binance WebSocket
+// Binance WebSocket
 const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  const price = parseFloat(data.p); // Цена из WebSocket
+  const rawPrice = parseFloat(data.p);
+
+  // Сглаживание: интерполяция между последней ценой и новой
+  const smoothedPrice = lastPrice + (rawPrice - lastPrice) * 0.3; // 30% шага для плавности
+  lastPrice = smoothedPrice;
+
   chart.data.datasets[0].data.shift();
-  chart.data.datasets[0].data.push(price);
+  chart.data.datasets[0].data.push(smoothedPrice);
   chart.update();
-  priceElement.textContent = `${price.toFixed(2)} USDT`;
+  priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
 };
 
 // Таймер
