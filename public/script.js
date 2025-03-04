@@ -5,10 +5,10 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: [],
+    labels: Array(60).fill(''), // Фиксируем 60 точек, как на Binance
     datasets: [{
       label: 'BTC/USD',
-      data: [],
+      data: Array(60).fill(50000), // Начальные значения
       borderColor: '#00ff00',
       backgroundColor: 'rgba(0, 255, 0, 0.1)',
       borderWidth: 2,
@@ -19,10 +19,10 @@ const chart = new Chart(ctx, {
   },
   options: {
     maintainAspectRatio: false,
+    animation: false, // Убираем анимацию для плавности
     scales: {
       x: {
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#fff' },
+        display: false, // Скрываем ось X, как на Binance
       },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)' },
@@ -37,29 +37,21 @@ const chart = new Chart(ctx, {
   },
 });
 
-// Загружаем начальные данные
+// Обновление цены
 async function fetchPrice() {
   const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
   const data = await response.json();
   return data.bitcoin.usd;
 }
 
-// Обновляем график
 async function updateChart() {
   const price = await fetchPrice();
-  const now = new Date().toLocaleTimeString();
-  chart.data.labels.push(now);
-  chart.data.datasets[0].data.push(price);
-
-  if (chart.data.labels.length > 20) {
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
-
+  chart.data.datasets[0].data.shift(); // Убираем первую точку
+  chart.data.datasets[0].data.push(price); // Добавляем новую
   chart.update();
 }
 
-// Первичная загрузка и обновление каждые 5 сек
+// Старт и обновление каждые 5 секунд
 updateChart();
 setInterval(updateChart, 5000);
 
