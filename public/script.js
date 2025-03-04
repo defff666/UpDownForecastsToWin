@@ -5,13 +5,13 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(15).fill(''), // 15 точек слева от центра
+    labels: Array(30).fill(''), // 30 точек, центр — 15
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(15).fill(84288), // Начальная цена
+      data: Array(30).fill(84288), // Начальная цена
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: (context) => (context.dataIndex === 14 ? 4 : 0), // Точка в конце
+      pointRadius: (context) => (context.dataIndex === 15 ? 4 : 0), // Точка в середине
       pointBackgroundColor: '#fff',
       fill: false,
       tension: 0.5, // Плавность
@@ -20,19 +20,14 @@ const chart = new Chart(ctx, {
   options: {
     maintainAspectRatio: false,
     animation: {
-      duration: 1000, // Плавная анимация
+      duration: 500, // Плавная анимация
       easing: 'easeInOutQuad',
     },
     scales: {
       x: { display: false },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)', drawTicks: false },
-        ticks: { 
-          color: '#fff', 
-          stepSize: 50, 
-          font: { size: 10 }, 
-          maxTicksLimit: 5 
-        },
+        ticks: { color: '#fff', stepSize: 50, font: { size: 10 }, maxTicksLimit: 5 },
         suggestedMin: 84200,
         suggestedMax: 84400,
       },
@@ -55,6 +50,7 @@ async function initChart() {
   const data = await response.json();
   lastPrice = parseFloat(data.price);
   chart.data.datasets[0].data.fill(lastPrice); // Заполняем стартовую цену
+  chart.data.datasets[0].data[15] = lastPrice; // Точка в середине
   chart.update();
   priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
 }
@@ -83,15 +79,15 @@ setInterval(() => {
     chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
     chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
 
-    // Сдвигаем хвост к голове
+    // Сдвигаем кривую к центру
     chart.data.datasets[0].data.shift();
-    chart.data.datasets[0].data[14] = smoothedPrice; // Голова питона
+    chart.data.datasets[0].data[15] = smoothedPrice; // Точка в середине
     chart.update();
     priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
 
     priceBuffer = [];
   }
-}, 1000);
+}, 500); // 500 мс для плавности
 
 // Таймер
 let timer = 60;
