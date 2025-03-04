@@ -11,8 +11,9 @@ const chart = new Chart(ctx, {
       data: Array(20).fill(null), // Начальные данные как null
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: (context) => (context.dataIndex === 10 ? 4 : 0), // Точка ближе к центру
+      pointRadius: (context) => (context.dataIndex === 10 ? 6 : 0), // Жирная круглая точка
       pointBackgroundColor: '#fff',
+      pointStyle: 'circle', // Круглая форма
       fill: false,
       tension: 0.5, // Плавность
       segment: {
@@ -23,7 +24,7 @@ const chart = new Chart(ctx, {
   options: {
     maintainAspectRatio: false,
     animation: {
-      duration: 500, // Плавная анимация
+      duration: 250, // Быстрая и плавная анимация
       easing: 'easeInOutQuad',
     },
     scales: {
@@ -32,13 +33,14 @@ const chart = new Chart(ctx, {
         grid: { color: 'rgba(255, 255, 255, 0.1)', drawTicks: false },
         ticks: { 
           color: '#fff', 
-          stepSize: 50, 
-          font: { size: 14, family: 'Arial' }, // Фиксированный шрифт
+          stepSize: 0.01, // Шаг 0.01 USDT
+          font: { size: 14, family: 'Arial' }, 
           maxTicksLimit: 5, 
-          autoSkip: false, // Не растягиваем
+          autoSkip: false,
+          precision: 2, // 2 знака после запятой
         },
-        suggestedMin: 84200,
-        suggestedMax: 84400,
+        suggestedMin: 84288 - 0.5,
+        suggestedMax: 84288 + 0.5,
       },
     },
     plugins: {
@@ -59,7 +61,7 @@ async function initChart() {
   const data = await response.json();
   lastPrice = parseFloat(data.price);
   const initialData = Array(20).fill(null);
-  for (let i = 0; i <= 10; i++) { // Только до центра
+  for (let i = 0; i <= 10; i++) {
     initialData[i] = lastPrice;
   }
   chart.data.datasets[0].data = initialData;
@@ -75,33 +77,33 @@ ws.onmessage = (event) => {
   const rawPrice = parseFloat(data.p);
   priceBuffer.push(rawPrice);
   priceHistory.push(rawPrice);
-  if (priceHistory.length > 10) priceHistory.shift();
+  if (priceHistory.length > 20) priceHistory.shift(); // 20 тиков для масштаба
 };
 
 // Обновление графика
 setInterval(() => {
   if (priceBuffer.length > 0) {
     const avgPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
-    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.8; // Сглаживание
+    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.9; // Усиленное сглаживание
     lastPrice = smoothedPrice;
 
     // Динамический масштаб
     const minPrice = Math.min(...priceHistory);
     const maxPrice = Math.max(...priceHistory);
-    chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
-    chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
+    chart.options.scales.y.suggestedMin = minPrice - 0.5;
+    chart.options.scales.y.suggestedMax = maxPrice + 0.5;
 
     // Обновляем данные
     const currentData = chart.data.datasets[0].data.slice();
     currentData.shift();
     currentData[10] = smoothedPrice; // Точка в центре
     chart.data.datasets[0].data = currentData;
-    chart.update({ duration: 500 });
+    chart.update({ duration: 250 });
 
     priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
     priceBuffer = [];
   }
-}, 500); // 500 мс
+}, 250); // 250 мс для плавности
 
 // Таймер
 let timer = 60;
