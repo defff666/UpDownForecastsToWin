@@ -5,16 +5,19 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(30).fill(''), // 30 точек
+    labels: Array(16).fill(''), // 16 точек, центр — 15, но отображаем только слева
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(30).fill(84288), // Начальная цена
+      data: Array(16).fill(null), // Начальные данные как null
       borderColor: '#00ff00',
       borderWidth: 2,
       pointRadius: (context) => (context.dataIndex === 15 ? 4 : 0), // Точка в середине
       pointBackgroundColor: '#fff',
       fill: false,
       tension: 0.5, // Плавность
+      segment: {
+        borderColor: (ctx) => (ctx.p1DataIndex > 15 ? 'transparent' : '#00ff00'), // Скрываем правую часть
+      },
     }],
   },
   options: {
@@ -27,7 +30,7 @@ const chart = new Chart(ctx, {
       x: { display: false },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)', drawTicks: false },
-        ticks: { color: '#fff', stepSize: 50, font: { size: 10 }, maxTicksLimit: 5 },
+        ticks: { color: '#fff', stepSize: 50, font: { size: 14 }, maxTicksLimit: 5 }, // Увеличенный шрифт
         suggestedMin: 84200,
         suggestedMax: 84400,
       },
@@ -49,8 +52,11 @@ async function initChart() {
   const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
   const data = await response.json();
   lastPrice = parseFloat(data.price);
-  chart.data.datasets[0].data = Array(30).fill(lastPrice); // Корректный массив
-  chart.data.datasets[0].data[15] = lastPrice; // Точка в середине
+  const initialData = Array(16).fill(null); // Только слева от точки
+  for (let i = 0; i <= 15; i++) {
+    initialData[i] = lastPrice; // Заполняем до точки
+  }
+  chart.data.datasets[0].data = initialData;
   chart.update();
   priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
 }
@@ -79,12 +85,12 @@ setInterval(() => {
     chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
     chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
 
-    // Обновляем данные без скачков
-    const currentData = chart.data.datasets[0].data.slice(); // Копируем массив
-    currentData.shift(); // Сдвигаем
+    // Обновляем данные
+    const currentData = chart.data.datasets[0].data.slice();
+    currentData.shift();
     currentData[15] = smoothedPrice; // Точка в середине
     chart.data.datasets[0].data = currentData;
-    chart.update({ duration: 500 }); // Плавный апдейт
+    chart.update({ duration: 500 });
 
     priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
     priceBuffer = [];
