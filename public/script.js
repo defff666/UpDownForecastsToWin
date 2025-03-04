@@ -14,7 +14,7 @@ const chart = new Chart(ctx, {
       tension: 0.1,
     }],
   },
-  options: { maintainAspectRatio: false },
+  options: { maintainAspectRatio: false, scales: { y: { beginAtZero: false } } },
 });
 
 let timer = 60;
@@ -25,6 +25,18 @@ setInterval(() => {
     timerElement.textContent = `Time left: ${timer}s`;
   }
 }, 1000);
+
+// Обновление графика (простое, без API пока)
+setInterval(() => {
+  const newPrice = chart.data.datasets[0].data.slice(-1)[0] + (Math.random() - 0.5) * 100;
+  chart.data.datasets[0].data.push(newPrice);
+  chart.data.labels.push('');
+  if (chart.data.datasets[0].data.length > 10) {
+    chart.data.datasets[0].data.shift();
+    chart.data.labels.shift();
+  }
+  chart.update();
+}, 5000);
 
 const betAmountInput = document.getElementById('betAmount');
 const upBtn = document.getElementById('upBtn');
