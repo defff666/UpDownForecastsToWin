@@ -49,7 +49,7 @@ async function initChart() {
   const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
   const data = await response.json();
   lastPrice = parseFloat(data.price);
-  chart.data.datasets[0].data.fill(lastPrice); // Заполняем стартовую цену
+  chart.data.datasets[0].data = Array(30).fill(lastPrice); // Корректный массив
   chart.data.datasets[0].data[15] = lastPrice; // Точка в середине
   chart.update();
   priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
@@ -79,11 +79,11 @@ setInterval(() => {
     chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
     chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
 
-    // Плавное обновление: сдвигаем и добавляем точку
-    const currentData = [...chart.data.datasets[0].data]; // Копируем текущие данные
-    currentData.shift(); // Убираем первую точку
+    // Обновляем данные без скачков
+    const currentData = chart.data.datasets[0].data.slice(); // Копируем массив
+    currentData.shift(); // Сдвигаем
     currentData[15] = smoothedPrice; // Точка в середине
-    chart.data.datasets[0].data = currentData; // Присваиваем обновлённые данные
+    chart.data.datasets[0].data = currentData;
     chart.update({ duration: 500 }); // Плавный апдейт
 
     priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
