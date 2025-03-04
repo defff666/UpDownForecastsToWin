@@ -5,10 +5,10 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(30).fill(''), // 30 точек для компактности
+    labels: Array(30).fill(''), // 30 точек
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(30).fill(50000), // Начальные значения
+      data: Array(30).fill(84288), // Начальная цена
       borderColor: '#00ff00',
       borderWidth: 1,
       pointRadius: 0,
@@ -20,46 +20,32 @@ const chart = new Chart(ctx, {
     maintainAspectRatio: false,
     animation: false,
     scales: {
-      x: { display: false }, // Без оси X
+      x: { display: false },
       y: {
-        display: false, // Без оси Y, как на BC.Game
-        suggestedMin: 49900,
-        suggestedMax: 50100,
+        display: false,
+        suggestedMin: 84200, // Устанавливаем диапазон
+        suggestedMax: 84350,
       },
     },
     plugins: {
-      legend: { display: false }, // Без легенды
-      tooltip: { enabled: false }, // Без подсказок
+      legend: { display: false },
+      tooltip: { enabled: false },
     },
   },
 });
 
-// Текущая цена
 const priceElement = document.getElementById('currentPrice');
 
-// Получаем цену с CoinGecko
-async function fetchPrice() {
-  try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-    const data = await response.json();
-    return data.bitcoin.usd;
-  } catch (error) {
-    console.error('Ошибка API:', error);
-    return chart.data.datasets[0].data.slice(-1)[0];
-  }
-}
-
-// Обновляем график и цену
-async function updateChart() {
-  const price = await fetchPrice();
+// Подключаем Binance WebSocket
+const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  const price = parseFloat(data.p); // Цена из WebSocket
   chart.data.datasets[0].data.shift();
   chart.data.datasets[0].data.push(price);
   chart.update();
-  priceElement.textContent = `${price.toFixed(2)} USDT`; // Цена с 2 знаками
-}
-
-updateChart();
-setInterval(updateChart, 1000); // Каждую секунду
+  priceElement.textContent = `${price.toFixed(2)} USDT`;
+};
 
 // Таймер
 let timer = 60;
