@@ -24,12 +24,12 @@ body {
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 #priceChart {
-  height: 150px !important;
-  width: 100%;
-  background: #222;
+  height: 150px !important; /* Жёстко фиксируем высоту */
+  width: 100% !important; /* Жёстко фиксируем ширину */
+  background: #222 !important; /* Тёмный фон */
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  position: relative;
+  overflow: hidden; /* Убираем вылет за пределы */
 }
 #timer {
   font-size: 18px;
