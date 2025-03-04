@@ -5,29 +5,31 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(30).fill(''), // 30 точек
+    labels: Array(60).fill(''), // 60 точек, но конец в середине
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(30).fill(84288), // Начальная цена
+      data: Array(60).fill(84288), // Начальная цена
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: 0,
+      pointRadius: (context) => (context.dataIndex === 29 ? 4 : 0), // Жирная точка в середине
+      pointBackgroundColor: '#fff',
       fill: false,
-      tension: 0.5, // Максимальная плавность
+      tension: 0.5, // Плавность
     }],
   },
   options: {
     maintainAspectRatio: false,
     animation: {
-      duration: 500, // Плавная анимация
-      easing: 'easeInOutQuad', // Мягкий переход
+      duration: 1000, // Очень плавная анимация
+      easing: 'easeInOutQuad',
     },
     scales: {
       x: { display: false },
       y: {
-        display: false,
-        suggestedMin: 84280, // Узкий диапазон
-        suggestedMax: 84296,
+        grid: { color: 'rgba(255, 255, 255, 0.05)' }, // Едва видимая сетка
+        ticks: { color: '#fff', stepSize: 50, font: { size: 10 } }, // Шаг 50 USDT
+        suggestedMin: 84200,
+        suggestedMax: 84400,
       },
     },
     plugins: {
@@ -38,33 +40,47 @@ const chart = new Chart(ctx, {
 });
 
 const priceElement = document.getElementById('currentPrice');
-let lastPrice = 84288; // Начальная цена
-let priceBuffer = []; // Буфер для тиков
+let lastPrice = 84288;
+let priceBuffer = [];
+let priceHistory = []; // Для динамического масштаба
 
 // Binance WebSocket
 const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   const rawPrice = parseFloat(data.p);
-  priceBuffer.push(rawPrice); // Собираем тики в буфер
+  priceBuffer.push(rawPrice);
+  priceHistory.push(rawPrice);
+  if (priceHistory.length > 10) priceHistory.shift(); // 10 последних тиков
 };
 
-// Обновление графика каждые 500 мс
+// Обновление графика каждые 1000 мс
 setInterval(() => {
   if (priceBuffer.length > 0) {
-    // Усредняем тики из буфера
     const avgPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
-    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.5; // Сглаживание 50%
+    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.7; // Сильное сглаживание
     lastPrice = smoothedPrice;
 
+    // Динамический масштаб
+    const minPrice = Math.min(...priceHistory);
+    const maxPrice = Math.max(...priceHistory);
+    chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
+    chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
+
+    // Сдвигаем данные, но точка в середине
+    const midIndex = 29; // Половина из 60
     chart.data.datasets[0].data.shift();
-    chart.data.datasets[0].data.push(smoothedPrice);
+    if (chart.data.datasets[0].data.length > midIndex) {
+      chart.data.datasets[0].data[midIndex] = smoothedPrice;
+    } else {
+      chart.data.datasets[0].data.push(smoothedPrice);
+    }
     chart.update();
     priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
 
-    priceBuffer = []; // Очищаем буфер
+    priceBuffer = [];
   }
-}, 500); // 500 мс — как у BC.Game
+}, 1000); // 1 секунда для плавности
 
 // Таймер
 let timer = 60;
