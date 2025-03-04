@@ -10,7 +10,7 @@ body {
 #app {
   text-align: center;
   width: 100%;
-  max-width: 400px; /* Компактно, как на BC.Game */
+  max-width: 400px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -18,19 +18,22 @@ body {
   gap: 20px;
 }
 #currentPrice {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: bold;
   color: #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); /* Лёгкое свечение */
 }
 #priceChart {
-  height: 150px !important; /* Маленький график */
+  height: 150px !important;
   width: 100%;
   background: #222;
   border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Тень для глубины */
 }
 #timer {
   font-size: 18px;
   font-weight: bold;
+  color: #ccc;
 }
 #betAmount {
   padding: 10px;
@@ -52,12 +55,16 @@ button {
   cursor: pointer;
   font-size: 16px;
   font-weight: bold;
+  transition: transform 0.1s; /* Плавное нажатие */
 }
 #upBtn {
   background: #00cc00;
 }
 #downBtn {
   background: #cc0000;
+}
+button:hover {
+  transform: scale(1.05);
 }
 button:disabled {
   opacity: 0.5;
