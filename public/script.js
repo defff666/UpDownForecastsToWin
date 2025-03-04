@@ -5,7 +5,7 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(30).fill(''), // 30 точек, центр — 15
+    labels: Array(30).fill(''), // 30 точек
     datasets: [{
       label: 'BTC/USDT',
       data: Array(30).fill(84288), // Начальная цена
@@ -79,15 +79,17 @@ setInterval(() => {
     chart.options.scales.y.suggestedMin = Math.floor(minPrice / 50) * 50 - 50;
     chart.options.scales.y.suggestedMax = Math.ceil(maxPrice / 50) * 50 + 50;
 
-    // Сдвигаем кривую к центру
-    chart.data.datasets[0].data.shift();
-    chart.data.datasets[0].data[15] = smoothedPrice; // Точка в середине
-    chart.update();
-    priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
+    // Плавное обновление: сдвигаем и добавляем точку
+    const currentData = [...chart.data.datasets[0].data]; // Копируем текущие данные
+    currentData.shift(); // Убираем первую точку
+    currentData[15] = smoothedPrice; // Точка в середине
+    chart.data.datasets[0].data = currentData; // Присваиваем обновлённые данные
+    chart.update({ duration: 500 }); // Плавный апдейт
 
+    priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
     priceBuffer = [];
   }
-}, 500); // 500 мс для плавности
+}, 500); // 500 мс
 
 // Таймер
 let timer = 60;
