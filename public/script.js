@@ -5,18 +5,18 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(16).fill(''), // 16 точек, центр — 15, но отображаем только слева
+    labels: Array(20).fill(''), // 20 точек, центр — 10
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(16).fill(null), // Начальные данные как null
+      data: Array(20).fill(null), // Начальные данные как null
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: (context) => (context.dataIndex === 15 ? 4 : 0), // Точка в середине
+      pointRadius: (context) => (context.dataIndex === 10 ? 4 : 0), // Точка ближе к центру
       pointBackgroundColor: '#fff',
       fill: false,
       tension: 0.5, // Плавность
       segment: {
-        borderColor: (ctx) => (ctx.p1DataIndex > 15 ? 'transparent' : '#00ff00'), // Скрываем правую часть
+        borderColor: (ctx) => (ctx.p1DataIndex > 10 ? 'transparent' : '#00ff00'), // Только слева
       },
     }],
   },
@@ -30,7 +30,13 @@ const chart = new Chart(ctx, {
       x: { display: false },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)', drawTicks: false },
-        ticks: { color: '#fff', stepSize: 50, font: { size: 14 }, maxTicksLimit: 5 }, // Увеличенный шрифт
+        ticks: { 
+          color: '#fff', 
+          stepSize: 50, 
+          font: { size: 14, family: 'Arial' }, // Фиксированный шрифт
+          maxTicksLimit: 5, 
+          autoSkip: false, // Не растягиваем
+        },
         suggestedMin: 84200,
         suggestedMax: 84400,
       },
@@ -52,9 +58,9 @@ async function initChart() {
   const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
   const data = await response.json();
   lastPrice = parseFloat(data.price);
-  const initialData = Array(16).fill(null); // Только слева от точки
-  for (let i = 0; i <= 15; i++) {
-    initialData[i] = lastPrice; // Заполняем до точки
+  const initialData = Array(20).fill(null);
+  for (let i = 0; i <= 10; i++) { // Только до центра
+    initialData[i] = lastPrice;
   }
   chart.data.datasets[0].data = initialData;
   chart.update();
@@ -88,7 +94,7 @@ setInterval(() => {
     // Обновляем данные
     const currentData = chart.data.datasets[0].data.slice();
     currentData.shift();
-    currentData[15] = smoothedPrice; // Точка в середине
+    currentData[10] = smoothedPrice; // Точка в центре
     chart.data.datasets[0].data = currentData;
     chart.update({ duration: 500 });
 
