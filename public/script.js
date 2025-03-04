@@ -5,63 +5,61 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(60).fill(''), // 60 точек
+    labels: Array(30).fill(''), // 30 точек для компактности
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(60).fill(50000), // Начальные значения
+      data: Array(30).fill(50000), // Начальные значения
       borderColor: '#00ff00',
-      backgroundColor: 'rgba(0, 255, 0, 0.1)',
-      borderWidth: 2,
+      borderWidth: 1,
       pointRadius: 0,
-      fill: true,
-      tension: 0.2,
+      fill: false,
+      tension: 0.1,
     }],
   },
   options: {
     maintainAspectRatio: false,
     animation: false,
     scales: {
-      x: {
-        display: false, // Скрываем ось X
-      },
+      x: { display: false }, // Без оси X
       y: {
-        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#fff', stepSize: 0.1 }, // Шаг 0.1 USDT
-        beginAtZero: false,
-        suggestedMin: 49900, // Минимальный масштаб
-        suggestedMax: 50100, // Максимальный масштаб
+        display: false, // Без оси Y, как на BC.Game
+        suggestedMin: 49900,
+        suggestedMax: 50100,
       },
     },
     plugins: {
-      legend: { labels: { color: '#fff' } },
-      tooltip: { enabled: true },
+      legend: { display: false }, // Без легенды
+      tooltip: { enabled: false }, // Без подсказок
     },
   },
 });
 
-// Получаем цену с CoinGecko (BTC/USDT через USD как прокси)
+// Текущая цена
+const priceElement = document.getElementById('currentPrice');
+
+// Получаем цену с CoinGecko
 async function fetchPrice() {
   try {
     const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
     const data = await response.json();
-    return data.bitcoin.usd; // USDT ≈ USD для простоты
+    return data.bitcoin.usd;
   } catch (error) {
     console.error('Ошибка API:', error);
     return chart.data.datasets[0].data.slice(-1)[0];
   }
 }
 
-// Обновляем график
+// Обновляем график и цену
 async function updateChart() {
   const price = await fetchPrice();
-  chart.data.datasets[0].data.shift(); // Убираем старую точку
-  chart.data.datasets[0].data.push(price); // Добавляем новую
+  chart.data.datasets[0].data.shift();
+  chart.data.datasets[0].data.push(price);
   chart.update();
+  priceElement.textContent = `${price.toFixed(2)} USDT`; // Цена с 2 знаками
 }
 
-// Старт и обновление каждую секунду
 updateChart();
-setInterval(updateChart, 1000);
+setInterval(updateChart, 1000); // Каждую секунду
 
 // Таймер
 let timer = 60;
@@ -69,7 +67,7 @@ const timerElement = document.getElementById('timer');
 setInterval(() => {
   if (timer > 0) {
     timer--;
-    timerElement.textContent = `Time left: ${timer}s`;
+    timerElement.textContent = `Time: ${timer}s`;
   }
 }, 1000);
 
