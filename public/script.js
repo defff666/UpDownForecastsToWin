@@ -5,7 +5,7 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(60).fill(''), // 60 точек, как тикер
+    labels: Array(60).fill(''), // 60 точек
     datasets: [{
       label: 'BTC/USD',
       data: Array(60).fill(50000), // Начальные значения
@@ -45,7 +45,7 @@ async function fetchPrice() {
     return data.bitcoin.usd;
   } catch (error) {
     console.error('Ошибка API:', error);
-    return chart.data.datasets[0].data.slice(-1)[0]; // Возвращаем последнюю цену при ошибке
+    return chart.data.datasets[0].data.slice(-1)[0]; // Последняя цена при ошибке
   }
 }
 
@@ -59,7 +59,7 @@ async function updateChart() {
 
 // Старт и обновление каждую секунду
 updateChart();
-setInterval(updateChart, 1000); // 1 секунда
+setInterval(updateChart, 1000);
 
 // Таймер
 let timer = 60;
