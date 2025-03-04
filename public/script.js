@@ -7,7 +7,7 @@ const chart = new Chart(ctx, {
   data: {
     labels: Array(60).fill(''), // 60 точек
     datasets: [{
-      label: 'BTC/USD',
+      label: 'BTC/USDT',
       data: Array(60).fill(50000), // Начальные значения
       borderColor: '#00ff00',
       backgroundColor: 'rgba(0, 255, 0, 0.1)',
@@ -26,8 +26,10 @@ const chart = new Chart(ctx, {
       },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#fff', stepSize: 1 }, // Шаг 1 USD
+        ticks: { color: '#fff', stepSize: 0.1 }, // Шаг 0.1 USDT
         beginAtZero: false,
+        suggestedMin: 49900, // Минимальный масштаб
+        suggestedMax: 50100, // Максимальный масштаб
       },
     },
     plugins: {
@@ -37,15 +39,15 @@ const chart = new Chart(ctx, {
   },
 });
 
-// Получаем цену с CoinGecko
+// Получаем цену с CoinGecko (BTC/USDT через USD как прокси)
 async function fetchPrice() {
   try {
     const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
     const data = await response.json();
-    return data.bitcoin.usd;
+    return data.bitcoin.usd; // USDT ≈ USD для простоты
   } catch (error) {
     console.error('Ошибка API:', error);
-    return chart.data.datasets[0].data.slice(-1)[0]; // Последняя цена при ошибке
+    return chart.data.datasets[0].data.slice(-1)[0];
   }
 }
 
