@@ -5,7 +5,7 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(60).fill(''), // Фиксируем 60 точек, как на Binance
+    labels: Array(60).fill(''), // 60 точек, как тикер
     datasets: [{
       label: 'BTC/USD',
       data: Array(60).fill(50000), // Начальные значения
@@ -19,14 +19,14 @@ const chart = new Chart(ctx, {
   },
   options: {
     maintainAspectRatio: false,
-    animation: false, // Убираем анимацию для плавности
+    animation: false,
     scales: {
       x: {
-        display: false, // Скрываем ось X, как на Binance
+        display: false, // Скрываем ось X
       },
       y: {
         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-        ticks: { color: '#fff', stepSize: 50 },
+        ticks: { color: '#fff', stepSize: 1 }, // Шаг 1 USD
         beginAtZero: false,
       },
     },
@@ -37,23 +37,29 @@ const chart = new Chart(ctx, {
   },
 });
 
-// Обновление цены
+// Получаем цену с CoinGecko
 async function fetchPrice() {
-  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-  const data = await response.json();
-  return data.bitcoin.usd;
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    const data = await response.json();
+    return data.bitcoin.usd;
+  } catch (error) {
+    console.error('Ошибка API:', error);
+    return chart.data.datasets[0].data.slice(-1)[0]; // Возвращаем последнюю цену при ошибке
+  }
 }
 
+// Обновляем график
 async function updateChart() {
   const price = await fetchPrice();
-  chart.data.datasets[0].data.shift(); // Убираем первую точку
+  chart.data.datasets[0].data.shift(); // Убираем старую точку
   chart.data.datasets[0].data.push(price); // Добавляем новую
   chart.update();
 }
 
-// Старт и обновление каждые 5 секунд
+// Старт и обновление каждую секунду
 updateChart();
-setInterval(updateChart, 5000);
+setInterval(updateChart, 1000); // 1 секунда
 
 // Таймер
 let timer = 60;
