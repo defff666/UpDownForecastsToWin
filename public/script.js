@@ -5,18 +5,65 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: ['0', '1', '2'],
+    labels: [],
     datasets: [{
-      label: 'BTC Price',
-      data: [50000, 50050, 50100],
+      label: 'BTC/USD',
+      data: [],
       borderColor: '#00ff00',
       backgroundColor: 'rgba(0, 255, 0, 0.1)',
-      tension: 0.1,
+      borderWidth: 2,
+      pointRadius: 0,
+      fill: true,
+      tension: 0.2,
     }],
   },
-  options: { maintainAspectRatio: false, scales: { y: { beginAtZero: false } } },
+  options: {
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: '#fff' },
+      },
+      y: {
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: '#fff', stepSize: 50 },
+        beginAtZero: false,
+      },
+    },
+    plugins: {
+      legend: { labels: { color: '#fff' } },
+      tooltip: { enabled: true },
+    },
+  },
 });
 
+// Загружаем начальные данные
+async function fetchPrice() {
+  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+  const data = await response.json();
+  return data.bitcoin.usd;
+}
+
+// Обновляем график
+async function updateChart() {
+  const price = await fetchPrice();
+  const now = new Date().toLocaleTimeString();
+  chart.data.labels.push(now);
+  chart.data.datasets[0].data.push(price);
+
+  if (chart.data.labels.length > 20) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+
+  chart.update();
+}
+
+// Первичная загрузка и обновление каждые 5 сек
+updateChart();
+setInterval(updateChart, 5000);
+
+// Таймер
 let timer = 60;
 const timerElement = document.getElementById('timer');
 setInterval(() => {
@@ -26,18 +73,7 @@ setInterval(() => {
   }
 }, 1000);
 
-// Обновление графика (простое, без API пока)
-setInterval(() => {
-  const newPrice = chart.data.datasets[0].data.slice(-1)[0] + (Math.random() - 0.5) * 100;
-  chart.data.datasets[0].data.push(newPrice);
-  chart.data.labels.push('');
-  if (chart.data.datasets[0].data.length > 10) {
-    chart.data.datasets[0].data.shift();
-    chart.data.labels.shift();
-  }
-  chart.update();
-}, 5000);
-
+// Логика ставок
 const betAmountInput = document.getElementById('betAmount');
 const upBtn = document.getElementById('upBtn');
 const downBtn = document.getElementById('downBtn');
