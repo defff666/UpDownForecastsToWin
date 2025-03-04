@@ -13,20 +13,20 @@ const chart = new Chart(ctx, {
       borderWidth: 2,
       pointRadius: 0,
       fill: false,
-      tension: 0.4, // Плавность линий
+      tension: 0.5, // Максимальная плавность
     }],
   },
   options: {
     maintainAspectRatio: false,
     animation: {
-      duration: 200, // Плавная анимация
-      easing: 'linear',
+      duration: 500, // Плавная анимация
+      easing: 'easeInOutQuad', // Мягкий переход
     },
     scales: {
       x: { display: false },
       y: {
         display: false,
-        suggestedMin: 84280, // Узкий диапазон для видимости изменений
+        suggestedMin: 84280, // Узкий диапазон
         suggestedMax: 84296,
       },
     },
@@ -38,23 +38,33 @@ const chart = new Chart(ctx, {
 });
 
 const priceElement = document.getElementById('currentPrice');
-let lastPrice = 84288; // Начальная цена для сглаживания
+let lastPrice = 84288; // Начальная цена
+let priceBuffer = []; // Буфер для тиков
 
 // Binance WebSocket
 const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   const rawPrice = parseFloat(data.p);
-
-  // Сглаживание: интерполяция между последней ценой и новой
-  const smoothedPrice = lastPrice + (rawPrice - lastPrice) * 0.3; // 30% шага для плавности
-  lastPrice = smoothedPrice;
-
-  chart.data.datasets[0].data.shift();
-  chart.data.datasets[0].data.push(smoothedPrice);
-  chart.update();
-  priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
+  priceBuffer.push(rawPrice); // Собираем тики в буфер
 };
+
+// Обновление графика каждые 500 мс
+setInterval(() => {
+  if (priceBuffer.length > 0) {
+    // Усредняем тики из буфера
+    const avgPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
+    const smoothedPrice = lastPrice + (avgPrice - lastPrice) * 0.5; // Сглаживание 50%
+    lastPrice = smoothedPrice;
+
+    chart.data.datasets[0].data.shift();
+    chart.data.datasets[0].data.push(smoothedPrice);
+    chart.update();
+    priceElement.textContent = `${smoothedPrice.toFixed(2)} USDT`;
+
+    priceBuffer = []; // Очищаем буфер
+  }
+}, 500); // 500 мс — как у BC.Game
 
 // Таймер
 let timer = 60;
