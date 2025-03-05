@@ -24,20 +24,22 @@ body {
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 #priceChart {
-  height: 150px !important; /* Жёстко фиксируем высоту */
-  width: 100% !important; /* Жёстко фиксируем ширину */
-  background: #222 !important; /* Тёмный фон */
+  height: 150px !important;
+  width: 100% !important;
+  background: #222 !important;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-  overflow: hidden; /* Убираем вылет за пределы */
+  overflow: hidden;
 }
 #timer {
   font-size: 18px;
   font-weight: bold;
-  color: #ccc;
-  background: #333;
-  padding: 5px 10px;
-  border-radius: 5px;
+  color: #fff;
+  background: linear-gradient(135deg, #333, #555); /* Градиент */
+  padding: 8px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  border: 1px solid #00ff00; /* Зелёная рамка */
 }
 #betAmount {
   padding: 10px;
