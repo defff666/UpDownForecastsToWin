@@ -5,13 +5,13 @@ const ctx = document.getElementById('priceChart').getContext('2d');
 const chart = new Chart(ctx, {
   type: 'line',
   data: {
-    labels: Array(20).fill(''),
+    labels: Array(40).fill(''), // 40 точек для 10 сек (250 мс * 40 = 10 сек)
     datasets: [{
       label: 'BTC/USDT',
-      data: Array(20).fill(null),
+      data: Array(40).fill(null),
       borderColor: '#00ff00',
       borderWidth: 2,
-      pointRadius: (context) => (context.dataIndex === 10 ? 6 : 0),
+      pointRadius: (context) => (context.dataIndex === 20 ? 6 : 0), // Точка в середине
       pointBackgroundColor: '#fff',
       pointStyle: 'circle',
       fill: false,
@@ -20,8 +20,8 @@ const chart = new Chart(ctx, {
         borderColor: (ctx) => {
           const index = ctx.p1DataIndex;
           const startIdx = chart.startIndex || 0;
-          const finishIdx = chart.finishIndex || 20;
-          if (index > 10) return 'transparent'; // Справа от точки не рисуем
+          const finishIdx = chart.finishIndex || 40;
+          if (index > 20) return 'transparent'; // Справа от точки не рисуем
           if (index >= startIdx && index <= finishIdx) return '#ffff00'; // Жёлтый между маркерами
           return '#00ff00';
         },
@@ -57,8 +57,8 @@ const chart = new Chart(ctx, {
         annotations: {
           startPin: {
             type: 'line',
-            xMin: 0,
-            xMax: 0,
+            xMin: -10, // Скрыт изначально
+            xMax: -10,
             borderColor: '#fff',
             borderWidth: 2,
             label: { enabled: false },
@@ -66,8 +66,8 @@ const chart = new Chart(ctx, {
           },
           finishMarker: {
             type: 'line',
-            xMin: 20,
-            xMax: 20,
+            xMin: 50, // Скрыт изначально
+            xMax: 50,
             borderColor: '#ff0000',
             borderWidth: 2,
             label: { enabled: false },
@@ -89,19 +89,20 @@ const resultElement = document.getElementById('result');
 let lastPrice = 84288;
 let priceBuffer = [];
 let priceHistory = [];
-let phase = 'betting'; // 'betting' или 'game'
+let phase = 'betting';
 let timer = 30; // 30 сек для ставок
 let bets = { up: [], down: [] };
 let startPrice = null;
 let finishPrice = null;
+let gameStartTime = null;
 
 // Инициализация графика
 async function initChart() {
   const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
   const data = await response.json();
   lastPrice = parseFloat(data.price);
-  const initialData = Array(20).fill(null);
-  for (let i = 0; i <= 10; i++) {
+  const initialData = Array(40).fill(null);
+  for (let i = 0; i <= 20; i++) {
     initialData[i] = lastPrice;
   }
   chart.data.datasets[0].data = initialData;
@@ -117,32 +118,30 @@ ws.onmessage = (event) => {
   const rawPrice = parseFloat(data.p);
   priceBuffer.push(rawPrice);
   priceHistory.push(rawPrice);
-  if (priceHistory.length > 20) priceHistory.shift();
+  if (priceHistory.length > 40) priceHistory.shift();
 };
 
-// Обновление графика
+// Плавное движение "листа"
 setInterval(() => {
+  const currentData = chart.data.datasets[0].data.slice();
+  currentData.shift();
+  
   if (priceBuffer.length > 0) {
-    const avgPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
-    lastPrice = avgPrice;
-
-    // Динамический масштаб
-    const minPrice = Math.min(...priceHistory);
-    const maxPrice = Math.max(...priceHistory);
-    chart.options.scales.y.suggestedMin = minPrice - 0.5;
-    chart.options.scales.y.suggestedMax = maxPrice + 0.5;
-
-    // Сдвигаем как лист бумаги
-    const currentData = chart.data.datasets[0].data.slice();
-    currentData.shift();
-    currentData[10] = lastPrice;
-    chart.data.datasets[0].data = currentData;
-    chart.update({ duration: 250 });
-
-    priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
+    lastPrice = priceBuffer.reduce((a, b) => a + b, 0) / priceBuffer.length;
     priceBuffer = [];
   }
-}, 250);
+  currentData[20] = lastPrice; // Точка в середине
+  chart.data.datasets[0].data = currentData;
+
+  // Динамический масштаб
+  const minPrice = Math.min(...priceHistory);
+  const maxPrice = Math.max(...priceHistory);
+  chart.options.scales.y.suggestedMin = minPrice - 0.5;
+  chart.options.scales.y.suggestedMax = maxPrice + 0.5;
+
+  chart.update({ duration: 250 });
+  priceElement.textContent = `${lastPrice.toFixed(2)} USDT`;
+}, 250); // Постоянная скорость 250 мс
 
 // Таймер и логика фаз
 setInterval(() => {
@@ -151,25 +150,24 @@ setInterval(() => {
     timerElement.textContent = phase === 'betting' ? `Bets close in: ${timer}s` : `Game ends in: ${timer}s`;
   } else {
     if (phase === 'betting') {
-      // Переход к фазе игры
       phase = 'game';
       timer = 10; // 10 сек для игры
       startPrice = lastPrice;
-      chart.startIndex = 10; // Фиксируем старт
-      chart.options.plugins.annotation.annotations.startPin.xMin = 10;
-      chart.options.plugins.annotation.annotations.startPin.xMax = 10;
+      gameStartTime = Date.now();
+      chart.startIndex = 20; // Стартовая линия
+      chart.options.plugins.annotation.annotations.startPin.xMin = 20;
+      chart.options.plugins.annotation.annotations.startPin.xMax = 20;
     } else if (phase === 'game') {
-      // Завершение игры
       finishPrice = lastPrice;
-      chart.finishIndex = 10; // Фиксируем финиш
-      chart.options.plugins.annotation.annotations.finishMarker.xMin = 10;
-      chart.options.plugins.annotation.annotations.finishMarker.xMax = 10;
+      const elapsed = (Date.now() - gameStartTime) / 250; // Кол-во шагов за 10 сек
+      chart.finishIndex = 20; // Финишная линия на текущей точке
+      chart.options.plugins.annotation.annotations.finishMarker.xMin = 20;
+      chart.options.plugins.annotation.annotations.finishMarker.xMax = 20;
 
       // Определяем победителя
       const result = finishPrice > startPrice ? 'Up' : 'Down';
       resultElement.textContent = `${result} wins!`;
       setTimeout(() => {
-        // Сброс
         phase = 'betting';
         timer = 30;
         bets = { up: [], down: [] };
@@ -177,10 +175,10 @@ setInterval(() => {
         finishPrice = null;
         chart.startIndex = null;
         chart.finishIndex = null;
-        chart.options.plugins.annotation.annotations.startPin.xMin = 0;
-        chart.options.plugins.annotation.annotations.finishMarker.xMin = 20;
+        chart.options.plugins.annotation.annotations.startPin.xMin = -10;
+        chart.options.plugins.annotation.annotations.finishMarker.xMin = 50;
         resultElement.textContent = '';
-      }, 3000); // 3 сек на показ результата
+      }, 3000);
     }
   }
 }, 1000);
@@ -200,7 +198,7 @@ async function placeBet(direction) {
     body: JSON.stringify({ amount, direction }),
   });
   const data = await response.json();
-  console.log(data); // Для отладки
+  console.log(data);
 }
 
 upBtn.addEventListener('click', () => placeBet('Up'));
